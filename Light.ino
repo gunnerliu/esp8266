@@ -1,25 +1,23 @@
-/*
-    This sketch demonstrates how to set up a simple HTTP-like server.
-    The server will set a GPIO pin depending on the request
-      http://server_ip/gpio/0 will set the GPIO2 low,
-      http://server_ip/gpio/1 will set the GPIO2 high
-    server_ip is the IP address of the ESP8266 module, will be
-    printed to Serial when the module is connected.
-*/
-
 #include <ESP8266WiFi.h>
+#include <Ticker.h>
+#include <ESP8266HTTPClient.h>
 
 #ifndef STASSID
-#define STASSID "Redmi_FFE7"
-#define STAPSK  "Qqxqq13579"
+#define STASSID ""
+#define STAPSK  ""
 #endif
 
 const char* ssid = STASSID;
 const char* password = STAPSK;
+String URL = "http://192.168.31.106/api/hk/iots/heartBeat";
+String iotCode = "light_one";
+String deviceType = "LIGHT";
 
 // Create an instance of the server
 // specify the port to listen on as an argument
 WiFiServer server(80);
+// 创建定时器
+Ticker ticker;
 
 // 控制继电器的 GPIO
 int pin = 0;
@@ -53,6 +51,8 @@ void setup() {
 
   // Print the IP address
   Serial.println(WiFi.localIP());
+  // 5 秒上报一次状态
+  ticker.attach(5, heart);
 }
 
 void loop() {
@@ -106,4 +106,17 @@ void loop() {
   // when the function returns and 'client' object is destroyed (out-of-scope)
   // flush = ensure written data are received by the other side
   Serial.println(F("Disconnecting from client"));
+}
+
+void heart(){
+//  String heartStr = "iotCode: " + iotCode + ", 设备类型: " + deviceType + ", 心跳检测, IP地址: " +  WiFi.localIP().toString() + F(", 开关值为: ") + digitalRead(pin);
+//  Serial.println(heartStr);
+  //创建 HTTPClient 对象
+  HTTPClient httpClient;
+  URL = URL + "?iotCode=" + iotCode + "&ipAddr=" + WiFi.localIP().toString() + "&deviceType=" + deviceType + "&switchValue=" + digitalRead(pin);
+  Serial.println(URL);
+  httpClient.begin(URL);
+  httpClient.GET();
+  //关闭ESP8266与服务器连接
+  httpClient.end();
 }
